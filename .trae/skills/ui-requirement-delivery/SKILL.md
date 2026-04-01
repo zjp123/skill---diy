@@ -70,6 +70,13 @@ description: "Builds a standardized UI delivery workflow from PRD/UI to componen
 - 修正冲突项（例如：2FA 组件在不同文档不一致）
 - 校验链接有效性与可追溯性
 
+### Step 7: RTM & Harness Gate
+
+- 建立 `REQ-*` 主键表（单一事实源）
+- 建立 任务->需求、UI->需求、文件->需求 映射
+- 输出最小 CI 门禁（lint/typecheck/unit/e2e/人工抽检）
+- 要求 PR 模板包含 `Implements: REQ-*` 与 `Tests: case-*`
+
 ## Quality Gates
 
 - 组件复用优先级明确，且每个关键区域有选型结论
@@ -77,6 +84,7 @@ description: "Builds a standardized UI delivery workflow from PRD/UI to componen
 - 状态机完整覆盖 view / edit / saving / error
 - 包含权限态、空态、错误态
 - 文档可直接交给开发执行，不依赖口头补充
+- 存在 RTM 映射并可审计到代码与测试
 
 ## Constraints
 
@@ -92,4 +100,3 @@ description: "Builds a standardized UI delivery workflow from PRD/UI to componen
 2. 新生成或更新的文档路径
 3. 关键组件映射结论
 4. 可直接进入编码的下一步动作
-

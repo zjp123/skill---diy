@@ -462,3 +462,27 @@ export default CommissionExchangeRatePage;
 - Save 必须经过 2FA
 - 保存成功后历史记录刷新且最新在前
 - 无编辑权限时仅可查看
+
+---
+
+## 6. 文件与 REQ 映射（代码审计入口）
+
+| 文件 | 覆盖需求ID | 审查重点 |
+|---|---|---|
+| `index.tsx` | REQ-004, REQ-005 | 状态流转与 2FA 串联 |
+| `components/BrandTabs.tsx` | REQ-003, REQ-004 | 仅品牌 Tab，无右侧下拉 |
+| `components/ExchangeRateSettingCard.tsx` | REQ-003, REQ-004 | 三字段校验与编辑态 |
+| `components/ExchangeRateRecordTable.tsx` | REQ-006 | 字段展示与排序 |
+| `components/BindTwoFaDialogAdapter.tsx` | REQ-005 | 2FA 组件参数透传正确 |
+| `hooks/useCommissionExchangeRate.ts` | REQ-003, REQ-004, REQ-006 | 请求编排与刷新策略 |
+| `services/api.ts` | REQ-003, REQ-005, REQ-006 | 接口签名与请求参数一致 |
+
+---
+
+## 7. Coding Harness 最小清单
+
+- [ ] 每个变更文件可反查到至少一个 `REQ-*`
+- [ ] PR 描述包含 `Implements: REQ-*`
+- [ ] PR 描述包含 `Tests: case-*`
+- [ ] lint/typecheck/test 全绿后才允许合并
+- [ ] 若 UI 交互变更，需同步更新 `ui-analysis-with-components.md`
