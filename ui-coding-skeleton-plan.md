@@ -22,7 +22,7 @@ src/pages/partnerManagement/commissionExchangeRate/
 │   ├── BrandTabs.tsx
 │   ├── ExchangeRateSettingCard.tsx
 │   ├── ExchangeRateRecordTable.tsx
-│   └── BindTwoFaDialogAdapter.tsx
+│   └── SaveTwoFaVerify.tsx
 └── services/
     └── api.ts
 ```
@@ -58,6 +58,12 @@ export interface QueryRecordParams {
   pageNum?: number;
   pageSize?: number;
 }
+
+export interface TwoFaVerifyStatus {
+  isBindTwoFa: boolean;
+  isTwoFaClose?: boolean;
+  userId?: string;
+}
 ```
 
 ## 3.2 constants.ts
@@ -83,7 +89,13 @@ export const RATE_RANGE = {
 ## 3.3 services/api.ts
 
 ```ts
-import type { BrandCode, QueryRecordParams, RateConfig, RateRecord } from '../types';
+import type {
+  BrandCode,
+  QueryRecordParams,
+  RateConfig,
+  RateRecord,
+  TwoFaVerifyStatus,
+} from '../types';
 
 export async function apiGetRateConfig(brand: BrandCode): Promise<RateConfig> {
   throw new Error('todo');
@@ -103,7 +115,7 @@ export async function apiGetRateRecords(params: QueryRecordParams): Promise<{
   throw new Error('todo');
 }
 
-export async function apiTwoFactorStatus(params: any): Promise<any> {
+export async function apiTwoFactorStatus(params?: any): Promise<TwoFaVerifyStatus> {
   throw new Error('todo');
 }
 
@@ -119,6 +131,13 @@ export async function apichangeDevice(params: any): Promise<any> {
   throw new Error('todo');
 }
 
+export async function apiVerifyTwoFaToken(payload: {
+  token: string;
+  userId?: string;
+}): Promise<void> {
+  throw new Error('todo');
+}
+
 ```
 
 ## 3.4 hooks/useCommissionExchangeRate.ts
@@ -130,8 +149,9 @@ import {
   apiGetRateConfig,
   apiGetRateRecords,
   apiSaveRateConfig,
+  apiTwoFactorStatus,
 } from '../services/api';
-import type { BrandCode, RateConfig, RateRecord } from '../types';
+import type { BrandCode, RateConfig, RateRecord, TwoFaVerifyStatus } from '../types';
 
 export function useCommissionExchangeRate() {
   const [brand, setBrand] = useState<BrandCode>('VG');
@@ -140,6 +160,7 @@ export function useCommissionExchangeRate() {
   const [config, setConfig] = useState<RateConfig>({});
   const [records, setRecords] = useState<RateRecord[]>([]);
   const [total, setTotal] = useState(0);
+  const [twoFaStatus, setTwoFaStatus] = useState<TwoFaVerifyStatus>({ isBindTwoFa: false });
 
   const fetchConfig = useCallback(async (nextBrand: BrandCode) => {
     setLoading(true);
@@ -162,6 +183,11 @@ export function useCommissionExchangeRate() {
     finally {
       setLoading(false);
     }
+  }, []);
+
+  const fetchTwoFaStatus = useCallback(async () => {
+    const res = await apiTwoFactorStatus();
+    setTwoFaStatus(res);
   }, []);
 
   const changeBrand = useCallback(async (nextBrand: BrandCode) => {
@@ -188,12 +214,14 @@ export function useCommissionExchangeRate() {
     config,
     records,
     total,
+    twoFaStatus,
     setConfig,
     changeBrand,
     fetchConfig,
     fetchRecords,
+    fetchTwoFaStatus,
     saveConfig,
-  }), [brand, loading, saving, config, records, total, changeBrand, fetchConfig, fetchRecords, saveConfig]);
+  }), [brand, loading, saving, config, records, total, twoFaStatus, changeBrand, fetchConfig, fetchRecords, fetchTwoFaStatus, saveConfig]);
 }
 ```
 
@@ -321,46 +349,96 @@ const ExchangeRateRecordTable = ({ loading, data }: ExchangeRateRecordTableProps
 export default ExchangeRateRecordTable;
 ```
 
-## 3.8 components/BindTwoFaDialogAdapter.tsx
+## 3.8 components/SaveTwoFaVerify.tsx
 
 ```tsx
-import { BindTwoFaDialog } from '@hytechc/business';
+import { useEffect, useState } from 'react';
+import { Form, Modal } from 'antd';
+import { BindTwoFaDialog, TwoFAFrom } from '@hytechc/business';
+import type { TwoFaVerifyStatus } from '../types';
 
-interface BindTwoFaDialogAdapterProps {
+interface SaveTwoFaVerifyProps {
   open: boolean;
+  status: TwoFaVerifyStatus;
   onCancel: () => void;
-  onSuccess: () => void;
+  onBound: () => Promise<void> | void;
+  onVerify: (token: string) => Promise<void>;
   onTwoFactorStatus: (params: any) => Promise<any>;
   onTwoFactorEnable: (params: any) => Promise<any>;
   onTwoFapreValidate: (params: any) => Promise<any>;
   onchangeDevice: (params: any) => Promise<any>;
 }
 
-const BindTwoFaDialogAdapter = ({
+const SaveTwoFaVerify = ({
   open,
+  status,
   onCancel,
-  onSuccess,
+  onBound,
+  onVerify,
   onTwoFactorStatus,
   onTwoFactorEnable,
   onTwoFapreValidate,
   onchangeDevice,
-}: BindTwoFaDialogAdapterProps) => {
+}: SaveTwoFaVerifyProps) => {
+  const [form] = Form.useForm<{ token: string }>();
+  const [submitting, setSubmitting] = useState(false);
+  const [step, setStep] = useState<'bind' | 'verify'>(status.isBindTwoFa ? 'verify' : 'bind');
+
+  useEffect(() => {
+    if (open) {
+      setStep(status.isBindTwoFa ? 'verify' : 'bind');
+      form.resetFields();
+    }
+  }, [form, open, status.isBindTwoFa]);
+
+  if (step === 'bind') {
+    return (
+      <BindTwoFaDialog
+        visible={open}
+        onClose={onCancel}
+        closeCallback={onCancel}
+        onTwoFactorStatus={onTwoFactorStatus}
+        onTwoFactorEnable={onTwoFactorEnable}
+        onTwoFapreValidate={onTwoFapreValidate}
+        onchangeDevice={onchangeDevice}
+        type="first"
+        successCallback={async () => {
+          await onBound();
+          setStep('verify');
+        }}
+      />
+    );
+  }
+
   return (
-    <BindTwoFaDialog
-      visible={open}
-      onClose={onCancel}
-      closeCallback={onCancel}
-      onTwoFactorStatus={onTwoFactorStatus}
-      onTwoFactorEnable={onTwoFactorEnable}
-      onTwoFapreValidate={onTwoFapreValidate}
-      onchangeDevice={onchangeDevice}
-      type="business"
-      successCallback={onSuccess}
-    />
+    <Modal
+      open={open}
+      title="Two-Factor Authentication"
+      onCancel={onCancel}
+      onOk={() => form.submit()}
+      confirmLoading={submitting}
+      destroyOnClose
+    >
+      <Form
+        form={form}
+        onFinish={async ({ token }) => {
+          setSubmitting(true);
+          try {
+            await onVerify(token);
+          }
+          finally {
+            setSubmitting(false);
+          }
+        }}
+      >
+        {/* 若 `@hytechc/business` 暂未导出 `TwoFAFrom`，先补 export，再复用登录页同款实现 */}
+        <TwoFAFrom loading={submitting} Instance={form} />
+      </Form>
+    </Modal>
   );
 };
 
-export default BindTwoFaDialogAdapter;
+export default SaveTwoFaVerify;
 ```
 
 ## 3.9 index.tsx
@@ -370,13 +448,14 @@ import { useEffect, useState } from 'react';
 import BrandTabs from './components/BrandTabs';
 import ExchangeRateSettingCard from './components/ExchangeRateSettingCard';
 import ExchangeRateRecordTable from './components/ExchangeRateRecordTable';
-import BindTwoFaDialogAdapter from './components/BindTwoFaDialogAdapter';
+import SaveTwoFaVerify from './components/SaveTwoFaVerify';
 import { useCommissionExchangeRate } from './hooks/useCommissionExchangeRate';
 import {
   apichangeDevice,
   apiTwoFactorEnable,
   apiTwoFapreValidate,
   apiTwoFactorStatus,
+  apiVerifyTwoFaToken,
 } from './services/api';
 
 const CommissionExchangeRatePage = () => {
@@ -387,11 +466,13 @@ const CommissionExchangeRatePage = () => {
     config,
     records,
     total,
+    twoFaStatus,
     setConfig,
     changeBrand,
     saveConfig,
     fetchConfig,
     fetchRecords,
+    fetchTwoFaStatus,
   } = useCommissionExchangeRate();
   const [editing, setEditing] = useState(false);
   const [open2FA, setOpen2FA] = useState(false);
@@ -400,7 +481,8 @@ const CommissionExchangeRatePage = () => {
   useEffect(() => {
     fetchConfig(brand);
     fetchRecords(brand);
-  }, [brand, fetchConfig, fetchRecords]);
+    fetchTwoFaStatus();
+  }, [brand, fetchConfig, fetchRecords, fetchTwoFaStatus]);
 
   return (
     <div>
@@ -421,14 +503,17 @@ const CommissionExchangeRatePage = () => {
         }}
       />
       <ExchangeRateRecordTable loading={loading} data={records} total={total} />
-      <BindTwoFaDialogAdapter
+      <SaveTwoFaVerify
         open={open2FA}
+        status={twoFaStatus}
         onCancel={() => setOpen2FA(false)}
+        onBound={fetchTwoFaStatus}
         onTwoFactorStatus={apiTwoFactorStatus}
         onTwoFactorEnable={apiTwoFactorEnable}
         onTwoFapreValidate={apiTwoFapreValidate}
         onchangeDevice={apichangeDevice}
-        onSuccess={async () => {
+        onVerify={async (token) => {
+          await apiVerifyTwoFaToken({ token, userId: twoFaStatus.userId });
           await saveConfig(pendingConfig);
           setOpen2FA(false);
           setEditing(false);
@@ -448,7 +533,7 @@ export default CommissionExchangeRatePage;
 - 第 1 步：先落 `types.ts` + `constants.ts` + `services/api.ts`
 - 第 2 步：实现 `useCommissionExchangeRate.ts`，保证数据流先通
 - 第 3 步：接入 `BrandTabs`（仅品牌 Tab，不带右侧下拉）
-- 第 4 步：实现配置卡片 + 二次验证弹窗
+- 第 4 步：实现配置卡片 + 二次验证分支组件（未绑定走 `BindTwoFaDialog`，已绑定走 `TwoFAFrom`）
 - 第 5 步：实现历史记录表
 - 第 6 步：接入权限与国际化 key
 
@@ -459,7 +544,7 @@ export default CommissionExchangeRatePage;
 - Tab 切换会刷新配置与记录
 - Edit / Save / Cancel 状态切换正确
 - 百分比输入校验：可空、0.01~10、2位小数
-- Save 必须经过 2FA
+- Save 必须先判断绑定态，再进入对应的 2FA 分支
 - 保存成功后历史记录刷新且最新在前
 - 无编辑权限时仅可查看
 
@@ -469,13 +554,13 @@ export default CommissionExchangeRatePage;
 
 | 文件 | 覆盖需求ID | 审查重点 |
 |---|---|---|
-| `index.tsx` | REQ-004, REQ-005 | 状态流转与 2FA 串联 |
+| `index.tsx` | REQ-004, REQ-005 | 状态流转、绑定态判断与 2FA 串联 |
 | `components/BrandTabs.tsx` | REQ-003, REQ-004 | 仅品牌 Tab，无右侧下拉 |
 | `components/ExchangeRateSettingCard.tsx` | REQ-003, REQ-004 | 三字段校验与编辑态 |
 | `components/ExchangeRateRecordTable.tsx` | REQ-006 | 字段展示与排序 |
-| `components/BindTwoFaDialogAdapter.tsx` | REQ-005 | 2FA 组件参数透传正确 |
-| `hooks/useCommissionExchangeRate.ts` | REQ-003, REQ-004, REQ-006 | 请求编排与刷新策略 |
-| `services/api.ts` | REQ-003, REQ-005, REQ-006 | 接口签名与请求参数一致 |
+| `components/SaveTwoFaVerify.tsx` | REQ-005 | 未绑定/已绑定两条 2FA 分支切换正确 |
+| `hooks/useCommissionExchangeRate.ts` | REQ-003, REQ-004, REQ-005, REQ-006 | 请求编排、绑定态状态与刷新策略 |
+| `services/api.ts` | REQ-003, REQ-005, REQ-006 | 2FA 状态/校验/保存接口签名一致 |
 
 ---
 
@@ -486,3 +571,4 @@ export default CommissionExchangeRatePage;
 - [ ] PR 描述包含 `Tests: case-*`
 - [ ] lint/typecheck/test 全绿后才允许合并
 - [ ] 若 UI 交互变更，需同步更新 `ui-analysis-with-components.md`
+- [ ] 2FA 需覆盖“未绑定首次绑定”和“已绑定验证码校验”两条路径

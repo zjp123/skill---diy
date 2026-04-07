@@ -79,7 +79,12 @@
 
 ### 2FA 说明
 - 保存前谷歌二次验证弹窗
-- 组件选型 BindTwoFaDialog 来源 `@hytechc/business`
+- 保存前先判断当前登录用户是否已绑定谷歌 2FA（`isBindTwoFa`）
+- 未绑定：执行绑定流程，渲染 `BindTwoFaDialog`，交互参考 `apps/ows/src/pages/login/index.tsx`
+- 已绑定：直接渲染 `TwoFAFrom`，交互参考 `packages/business/src/login/components/twoFAFrom.tsx`
+- 组件选型：
+  - `BindTwoFaDialog` 来源 `@hytechc/business`
+  - `TwoFAFrom` 复用登录域现有实现，若包层暂未导出则优先补导出，不重新造轮子
 
 ---
 
@@ -137,7 +142,7 @@
 | 按钮区 | `Button` | Antd | 复用 |
 | 权限控制 | `Auth` | `@hytechc/admin-ui` | 复用 |
 | 历史记录表 | `BusinessTable` | [`feedback/App.tsx#L92-L112`](file:///Users/bjsttlp406/pro_pro/admin-all/apps/ows/src/pages/partnerManagement/feedback/App.tsx#L92-L112) | 优先复用 |
-| 保存前二次验证 | `BindTwoFaDialog` | `@hytechc/business` | 复用 |
+| 保存前二次验证 | `BindTwoFaDialog` / `TwoFAFrom` | `@hytechc/business` / 登录域现有实现 | 按绑定态分支复用 |
 | 页面业务卡片 | `ExchangeRateSettingCard` / `ExchangeRateRecordCard` | 新业务结构 | 自定义开发 |
 
 ---
@@ -154,7 +159,9 @@
 - 点击 Edit → 进入编辑态
 - 点击 Save：
   - 前端校验三项输入
-  - 打开 2FA 弹窗
+  - 先判断当前用户是否已绑定 2FA
+  - 未绑定：打开 `BindTwoFaDialog` 完成首次绑定
+  - 已绑定：直接渲染 `TwoFAFrom` 输入验证码
   - 验证通过后提交保存
   - 成功提示并回 view 态
   - 刷新历史记录首行
@@ -175,7 +182,7 @@
 - `components/BrandTabs.tsx`（复用 `AssetTabs` 并关闭右侧品牌下拉）
 - `components/ExchangeRateSettingCard.tsx`（自定义）
 - `components/ExchangeRateRecordTable.tsx`（BusinessTable 封装）
-- `components/BindTwoFaDialogAdapter.tsx`（封装业务参数，底层复用 `BindTwoFaDialog`）
+- `components/SaveTwoFaVerify.tsx`（封装 `BindTwoFaDialog` + `TwoFAFrom` 的分支渲染）
 - `hooks/useCommissionExchangeRate.ts`（请求与状态）
 - `style.module.less`（沿用 OWS + DAP 风格变量）
 
@@ -190,7 +197,7 @@
 - 历史记录是否需要分页（UI 图看起来无分页）
 答：暂不
 - 2FA 弹窗是否已有平台级统一组件可复用
-答：是，组件选型 BindTwoFaDialog 来源 `@hytechc/business`
+答：是，但需按用户绑定态分支复用；未绑定走 `BindTwoFaDialog`，已绑定走 `TwoFAFrom`
 - 记录表是否必须统一接入 `BusinessTable`（建议是）
 答：是
 
@@ -216,6 +223,6 @@
 - [ ] Tab 切换：品牌数据联动正确，且无右侧下拉
 - [ ] 输入校验：0.01~10.00、2位小数、可空、错误提示正确
 - [ ] 状态机：view/edit/saving/error 均可复现
-- [ ] 2FA：保存前必须进入 `BindTwoFaDialog`
+- [ ] 2FA：未绑定进入 `BindTwoFaDialog`，已绑定直接进入 `TwoFAFrom`
 - [ ] 历史记录：From/To/Operator/Time 字段语义正确
 - [ ] 权限态：无编辑权限时仅可查看
