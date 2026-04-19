@@ -1,102 +1,120 @@
 ---
-name: "ui-requirement-delivery"
-description: "Builds a standardized UI delivery workflow from PRD/UI to component mapping and coding skeleton. Invoke when user asks UI解析、任务拆解、组件选型或可编码骨架."
+name: "frontend-workflow"
+description: >
+  完整前端研发工作流：从 PRD 解析 → Figma 设计读取 → 组件选型 → 任务拆解 →
+  代码骨架 → 后端接口集成 → TDD 开发 → 验证循环 → E2E 测试 → Code Review。
+  触发词：UI解析、PRD拆解、Figma解析、任务清单、代码骨架、TDD、CodeReview、
+  前端工作流、需求落地、接口文档、API集成、接口实现、后端联调、Swagger、OpenAPI、
+  接口对接、服务层、api.ts。
 ---
 
-# UI Requirement Delivery Workflow
+# Frontend Workflow — PRD to Code Review
 
-## Purpose
+## 目的
 
-将需求从「PRD / UI 图」标准化落地到「可编码输出物」，保证可复用、可评审、可执行。
+将「PRD / Figma 设计」标准化落地为「通过 Code Review 的可合并代码」，
+贯通前端研发的所有关键环节，保证可复用、可评审、可追溯。
 
-## When To Invoke
+---
+
+## 触发条件
 
 - 用户提到 UI 解析、页面拆解、组件选型
-- 用户需要把 PRD 拆成前端可执行功能点
+- 用户需要把 PRD 拆成前端可执行任务
 - 用户要求输出开发任务清单（WBS / DoD）
 - 用户要求生成代码骨架或文件拆分建议
+- 用户提到 TDD、测试驱动、先写测试
+- 用户要求进行代码评审或 PR 检查
+- 用户提到 Figma 稿、UI 稿、设计稿
+- 用户提供了接口文档（Swagger / OpenAPI / Postman / Markdown 描述）
+- 用户提到接口联调、前后端对接、服务层实现
 
-## Required Inputs
+---
 
-- PRD 链接或文本（可选）
-- UI 图或原型链接（至少其一）
+## 必要输入
+
+- PRD 链接或文本（可选，至少有其一）
+- Figma 链接或 UI 截图（至少其一）
 - 目标代码仓路径
-- 约束条件（如：优先复用现有组件、特定 2FA 组件、是否分页）
+- 约束条件（优先复用哪些组件、特殊安全流程、是否分页等）
+- 后端接口文档（可选；Swagger / OpenAPI / Postman / Markdown 均可；提供后 Phase 5b 自动激活）
 
-## Standard Outputs
+---
 
-- `prd-analyze.md`：前端需求拆解
-- `prd-dev-task-list.md`：开发任务清单（含依赖、优先级、DoD）
-- `ui-analysis-with-components.md`：UI 区域拆解 + 组件映射
-- `ui-coding-skeleton-plan.md`：按文件拆分的代码骨架
+## 标准交付物
 
-## Workflow Steps
+| 文件 | 内容 |
+|---|---|
+| `prd-analyze.md` | 前端需求拆解（模块 / 优先级 / 接口契约） |
+| `ui-analysis-with-components.md` | UI 区域拆解 + 组件选型 + REQ 映射 |
+| `prd-dev-task-list.md` | WBS 任务清单（依赖 / 优先级 / DoD） |
+| `ui-coding-skeleton-plan.md` | 按文件拆分的代码骨架 |
+| `api-integration.md`（有接口文档时） | 接口清单表 + 项目规范确认 + 错误码映射 |
 
-### Step 1: Codebase Recon
+---
 
-- 检查技术栈：框架、UI 库、状态管理、表格组件、权限组件
-- 检查可复用组件：Tabs、Form、Table、2FA、Dialog
-- 输出证据链接（文件 + 行号）
+## 工作流总览
 
-### Step 2: PRD Action Breakdown
+```
+Phase 0   PRD 解析              → phases/00-prd-analysis.md
+   ↓
+Phase 1   Figma / UI 读取       → phases/01-figma-reading.md
+   ↓
+Phase 2   代码库侦察             → phases/02-codebase-recon.md
+   ↓
+Phase 3   UI → 组件映射          → phases/03-component-mapping.md
+   ↓
+Phase 4   任务清单 & RTM         → phases/04-task-list.md
+   ↓
+Phase 5   代码骨架               → phases/05-coding-skeleton.md
+   ↓
+Phase 5b  后端接口集成 ★          → phases/05b-api-integration.md
+          （有接口文档时必须执行，无则跳过）
+   ↓
+Phase 6   TDD 开发循环           → phases/06-tdd.md
+   ↓
+Phase 7   验证循环               → phases/07-verification.md
+   ↓
+Phase 8   E2E 测试               → phases/08-e2e-testing.md
+   ↓
+Phase 9   Code Review           → phases/09-code-review.md
 
-- 按模块拆解功能点（P0/P1）
-- 每个功能点补充：前端范围、接口依赖、异常态、验收口径
-- 形成可执行步骤，不写空泛叙述
+共用规则 → shared/ci-quality-gates.md
+```
 
-### Step 3: UI-to-Component Mapping
+> **Phase 1 / Phase 2 顺序说明**
+> 默认先读 Figma（Phase 1）再侦察代码库（Phase 2）。
+> 若为**存量项目迭代**（非绿地开发），建议先执行 Phase 2 侦察代码库，
+> 带着已知组件清单再读 Figma，可直接在设计稿里做组件复用标注，减少回头成本。
 
-- 按 UI 区域拆解：结构、状态机、交互流、校验规则
-- 每个区域标注组件选型：
-  - 优先复用现有组件
-  - 无可复用时标注自定义开发
-- 输出组件来源证据（代码链接）
+---
 
-### Step 4: Dev Task List
+## 工作流完成定义（Overall DoD）
 
-- 按里程碑拆任务（M1/M2）
-- 每任务包含：输入、输出、依赖、DoD
-- 补充联调与回归任务，避免遗漏
+- [ ] 功能：P0 功能全部可用，与 PRD 关键条目逐项对齐
+- [ ] 视觉：与 Figma 设计 1:1 对齐，无视觉偏差
+- [ ] 接口：`services/api.ts` 实现与接口文档字段一一对应，错误码映射完整，无魔法字符串（有接口文档时必查）
+- [ ] 质量：单测 / E2E / 回归全绿，关键异常路径可复现可恢复
+- [ ] 安全：权限与 2FA 流程闭环，无越权入口
+- [ ] 可观测：埋点与监控生效，可追踪核心操作成功率和错误率
+- [ ] 发布：完成灰度观察并具备一键回滚能力
+- [ ] 追溯：所有 PR 包含 REQ 映射和测试引用，RTM 可审计到代码与测试
 
-### Step 5: Coding Skeleton
+---
 
-- 按目录与文件生成骨架（types/constants/services/hooks/components/page）
-- 给出关键 Props / 类型 / 方法签名
-- 对齐已确认约束（如：无右侧品牌下拉、固定 2FA 组件）
+## 快速导航
 
-### Step 6: Consistency Pass
-
-- 校验文档之间是否一致（组件名、组件来源、交互规则）
-- 修正冲突项（例如：2FA 组件在不同文档不一致）
-- 校验链接有效性与可追溯性
-
-### Step 7: RTM & Harness Gate
-
-- 建立 `REQ-*` 主键表（单一事实源）
-- 建立 任务->需求、UI->需求、文件->需求 映射
-- 输出最小 CI 门禁（lint/typecheck/unit/e2e/人工抽检）
-- 要求 PR 模板包含 `Implements: REQ-*` 与 `Tests: case-*`
-
-## Quality Gates
-
-- 组件复用优先级明确，且每个关键区域有选型结论
-- 至少 1 条代码证据支撑每个关键复用点
-- 状态机完整覆盖 view / edit / saving / error
-- 包含权限态、空态、错误态
-- 文档可直接交给开发执行，不依赖口头补充
-- 存在 RTM 映射并可审计到代码与测试
-
-## Constraints
-
-- 不凭空假设第三方库已存在，必须先在仓库验证
-- 不泄露敏感信息，不输出密钥/令牌
-- 不创建无关文档，优先在已有交付链路内补充
-
-## Response Template
-
-完成后按以下结构返回：
-
-1. 已完善点（列出补齐的关键缺口）
-2. 新生成或更新的文档路径
-3. 关键组件映射结论
-4. 可直接进入编码的下一步动作
+| 我想做的事 | 阅读哪个文件 |
+|---|---|
+| 拆解 PRD、建立 REQ 表 | `phases/00-prd-analysis.md` |
+| 读取 Figma 设计稿 | `phases/01-figma-reading.md` |
+| 侦察现有代码库 | `phases/02-codebase-recon.md` |
+| 做 UI 区域组件选型 | `phases/03-component-mapping.md` |
+| 生成 WBS 任务清单 | `phases/04-task-list.md` |
+| 生成代码骨架 | `phases/05-coding-skeleton.md` |
+| 后端接口集成（有接口文档时） | `phases/05b-api-integration.md` |
+| TDD 开发 | `phases/06-tdd.md` |
+| PR 前质量验证 | `phases/07-verification.md` |
+| 写 / 跑 E2E 测试 | `phases/08-e2e-testing.md` |
+| Code Review / PR 模板 | `phases/09-code-review.md` |
+| CI 门禁 / 质量规则 | `shared/ci-quality-gates.md` |
