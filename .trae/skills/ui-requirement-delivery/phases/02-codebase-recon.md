@@ -44,6 +44,10 @@ BusinessTable → packages/admin-ui/src/BusinessTable/index.tsx#1
 
 ---
 
+> **确认协议**：本 Phase 遇到以下情况时必须暂停：
+> 发现现有代码实现与 PRD / Figma 需求矛盾 / 改动可能影响现有页面。
+> 提问格式见 `shared/user-confirmation-protocol.md`。
+
 ## 禁止事项
 
 - 禁止凭空假设第三方库已存在，必须先在 `package.json` 验证

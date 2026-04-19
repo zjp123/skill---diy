@@ -39,6 +39,10 @@ description: >
 - 约束条件（优先复用哪些组件、特殊安全流程、是否分页等）
 - 后端接口文档（可选；Swagger / OpenAPI / Postman / Markdown 均可；提供后 Phase 5b 自动激活）
 
+> **确认协议**：工作流执行过程中，凡遇到需求歧义、选型分歧、安全决策等不确定情况，
+> AI **必须暂停并向用户提问**，收到明确回复后才能继续。
+> 详见 `shared/user-confirmation-protocol.md`。
+
 ---
 
 ## 标准交付物
@@ -81,6 +85,7 @@ Phase 8   E2E 测试               → phases/08-e2e-testing.md
 Phase 9   Code Review           → phases/09-code-review.md
 
 共用规则 → shared/ci-quality-gates.md
+确认协议 → shared/user-confirmation-protocol.md（贯穿全程，不确定时必须暂停）
 会话日志 → shared/session-log.md（贯穿全程，实时追加）
 ```
 
@@ -121,3 +126,4 @@ Phase 9   Code Review           → phases/09-code-review.md
 | Code Review / PR 模板 | `phases/09-code-review.md` |
 | CI 门禁 / 质量规则 | `shared/ci-quality-gates.md` |
 | 查看会话决策记录 | `shared/session-log.md` |
+| 不确定时的提问规范 | `shared/user-confirmation-protocol.md` |

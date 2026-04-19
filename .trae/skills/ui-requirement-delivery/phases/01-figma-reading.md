@@ -5,6 +5,10 @@
 
 ---
 
+> **确认协议**：本 Phase 遇到以下情况时必须暂停：
+> PRD 描述与 Figma 设计不一致 / 设计 Token 无法映射到项目已有 Token。
+> 提问格式见 `shared/user-confirmation-protocol.md`。
+
 ## Figma MCP 使用规则（必须遵守）
 
 1. **先调用 Figma MCP 工具**读取设计稿，不凭截图猜测
