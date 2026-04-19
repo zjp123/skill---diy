@@ -50,6 +50,7 @@ description: >
 | `prd-dev-task-list.md` | WBS 任务清单（依赖 / 优先级 / DoD） |
 | `ui-coding-skeleton-plan.md` | 按文件拆分的代码骨架 |
 | `api-integration.md`（有接口文档时） | 接口清单表 + 项目规范确认 + 错误码映射 |
+| `workflow-session-log.md` | 会话过程记录（用户修改 / 确认项 / 重新生成）|
 
 ---
 
@@ -80,6 +81,7 @@ Phase 8   E2E 测试               → phases/08-e2e-testing.md
 Phase 9   Code Review           → phases/09-code-review.md
 
 共用规则 → shared/ci-quality-gates.md
+会话日志 → shared/session-log.md（贯穿全程，实时追加）
 ```
 
 > **Phase 1 / Phase 2 顺序说明**
@@ -118,3 +120,4 @@ Phase 9   Code Review           → phases/09-code-review.md
 | 写 / 跑 E2E 测试 | `phases/08-e2e-testing.md` |
 | Code Review / PR 模板 | `phases/09-code-review.md` |
 | CI 门禁 / 质量规则 | `shared/ci-quality-gates.md` |
+| 查看会话决策记录 | `shared/session-log.md` |
