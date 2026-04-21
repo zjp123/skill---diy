@@ -13,33 +13,30 @@
 ```
 作为 [角色]，我希望 [操作]，以便 [价值]
 
-示例：
-作为配置管理员，我希望保存汇率前通过 2FA 验证，
-以便防止未授权修改。
+示例（根据 PRD 实际需求填写）：
+作为 [具体角色]，我希望 [完成某个操作]，
+以便 [实现某个业务目标]。
 ```
 
 ### Step 2：生成测试用例
 
 覆盖：正常路径 / 边界值 / 异常态 / 权限态
 
-```typescript
-describe('ExchangeRateSettingCard', () => {
-  it('空值时允许提交')
-  it('超出 0.01~10.00 范围时显示错误提示')
-  it('非 2 位小数时显示错误提示')
-  it('无编辑权限时 Edit 按钮不可见')
-  it('2FA 未通过时不触发保存请求')
-  it('保存成功后回到 view 态')
-  it('保存失败时保留 edit 态并提示错误')
+```
+describe('<ComponentName>', () => {
+  it('[正常路径描述]')
+  it('[边界值描述]')
+  it('[异常态描述]')
+  it('[权限态描述]')
+  it('[错误恢复描述]')
 })
 ```
 
+> 测试用例来自 Phase 1 状态机结论 + Phase 3 组件映射的校验规则与权限态，不要凭空编写。
+
 ### Step 3：运行测试（必须 RED）
 
-```bash
-npm test
-# 测试必须失败 — 尚未实现
-```
+使用项目已有的测试运行命令（从 Phase 2 侦察结果中确认）。
 
 **RED 验证规则**：
 - 测试必须被实际执行并失败（只写未运行不算）
@@ -56,12 +53,7 @@ git commit -m "test: add reproducer for <feature>"
 
 ### Step 5：运行测试（必须 GREEN）
 
-```bash
-npm test
-# 之前失败的测试必须通过
-```
-
-确认 GREEN 后创建 Git checkpoint：
+之前失败的测试必须通过。确认 GREEN 后创建 Git checkpoint：
 
 ```bash
 git commit -m "fix: implement <feature>"
@@ -81,10 +73,9 @@ git commit -m "refactor: clean up <feature>"
 
 ### Step 7：覆盖率验证
 
-```bash
-npm run test:coverage
-# 目标：≥ 80% branches / functions / lines / statements
-```
+使用项目已有的覆盖率命令（从 Phase 2 确认）。
+
+目标：≥ 80% branches / functions / lines / statements
 
 ---
 
@@ -92,43 +83,40 @@ npm run test:coverage
 
 | 测试层次 | 负责 Phase | 说明 |
 |---|---|---|
-| 服务层（`services/api.ts`）| **Phase 5b** | Mock HTTP 请求，验证参数构造和响应映射 |
-| Hooks / 业务逻辑 | **Phase 6（本 Phase）** | Mock 服务层，验证状态流转和副作用 |
-| UI 组件 | **Phase 6（本 Phase）** | Mock Hooks，验证用户可见行为 |
+| 接口层 | **Phase 5b** | Mock HTTP 请求，验证参数构造和响应映射 |
+| 逻辑单元（hook / composable / store） | **Phase 6（本 Phase）** | Mock 接口层，验证状态流转和副作用 |
+| UI 组件 | **Phase 6（本 Phase）** | Mock 逻辑单元，验证用户可见行为 |
 | E2E 链路 | **Phase 8** | 真实浏览器，不 Mock，验证完整用户旅程 |
 
 > **原则**：每层只 Mock 其直接下层，不跨层 Mock。
-> 服务层测试若已在 Phase 5b 完成，Phase 6 无需重复覆盖 `services/api.ts`。
+> 接口层测试若已在 Phase 5b 完成，Phase 6 无需重复覆盖。
 
 ---
 
 ## 单元测试规范
 
-### AAA 结构（每个 `it` 块必须遵守）
+### AAA 结构（每个测试块必须遵守）
 
-```typescript
-it('超出范围时显示错误提示', () => {
+```
+it('<业务场景描述>', () => {
   // Arrange — 准备数据和前置条件
-  render(<ExchangeRateSettingCard editing value={{}} onSave={jest.fn()} />)
+  <渲染组件或初始化逻辑单元，传入测试所需 Props / 参数>
 
   // Act — 执行用户操作
-  fireEvent.change(screen.getByLabelText('Cross Currency Rate'), {
-    target: { value: '99' },
-  })
-  fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+  <触发用户交互或调用被测函数>
 
   // Assert — 验证用户可见结果（不验证内部状态）
-  expect(screen.getByText('汇率要求0.01～10.00 %内，请重新输入')).toBeInTheDocument()
+  <断言 UI 输出或返回值>
 })
 ```
 
 ### 测试命名：描述业务场景，不描述实现
 
-```typescript
+```
 // ✓ 描述用户可见行为
-it('空值时允许保存')
-it('无编辑权限时 Edit 按钮不可见')
-it('2FA 未通过时不触发保存请求')
+it('空值时允许提交')
+it('无操作权限时操作按钮不可见')
+it('提交失败时保留当前编辑态并显示错误')
 
 // ✗ 描述实现细节
 it('test form validation')
@@ -143,13 +131,13 @@ it('setState is called')
 
 需要标注 `data-testid` 的元素类型：
 
-| 元素类型 | 示例 |
+| 元素类型 | 命名示例 |
 |---|---|
-| 关键操作按钮 | `data-testid="save-btn"` / `data-testid="edit-btn"` |
-| 表单输入项（无语义 label 时） | `data-testid="rate-input"` |
-| 数据展示容器 | `data-testid="result-table"` / `data-testid="empty-state"` |
+| 关键操作按钮 | `data-testid="<action>-btn"` |
+| 表单输入项（无语义 label 时） | `data-testid="<field>-input"` |
+| 数据展示容器 | `data-testid="<resource>-list"` / `data-testid="empty-state"` |
 | 状态反馈元素 | `data-testid="error-toast"` / `data-testid="loading-spinner"` |
-| 弹窗 / 抽屉 | `data-testid="confirm-modal"` |
+| 弹窗 / 抽屉 | `data-testid="<purpose>-modal"` |
 
 命名规则：`kebab-case`，语义自解释，禁止用 `test-1`、`btn-a` 等无意义编号。
 
@@ -157,22 +145,22 @@ it('setState is called')
 
 ### Mock 规则
 
-- 外部 API 调用必须 Mock（直接下层，不跨层）
+- 外部接口调用必须 Mock（直接下层，不跨层）
 - 禁止 Mock 被测单元本身
 - Mock 函数需要验证调用参数和调用次数
 
-```typescript
-const mockSaveConfig = jest.fn().mockResolvedValue(undefined)
+```
+const mock<Action> = <mockFn>().mockResolvedValue(undefined)
 // 验证调用
-expect(mockSaveConfig).toHaveBeenCalledWith({ crossCurrencyRate: 0.5 })
-expect(mockSaveConfig).toHaveBeenCalledTimes(1)
+expect(mock<Action>).toHaveBeenCalledWith(<expectedPayload>)
+expect(mock<Action>).toHaveBeenCalledTimes(1)
 ```
 
 ### 禁止反模式
 
-- `waitForTimeout` 固定等待 → 改用 `waitFor` 条件等待
+- 固定时间等待 → 改用条件等待
 - 测试之间共享可变状态 → 每个测试独立初始化
-- 断言内部实现（`component.state`）→ 只断言用户可见行为
+- 断言内部实现（组件内部 state）→ 只断言用户可见行为
 - 用 `index` 作为 key 的列表 snapshot 测试 → 用语义断言替代
 
 ---
@@ -184,4 +172,4 @@ expect(mockSaveConfig).toHaveBeenCalledTimes(1)
 - [ ] 覆盖率 ≥ 80%
 - [ ] 正常路径、边界值、异常态、权限态均有覆盖
 - [ ] 关键操作按钮、表单输入、数据容器均已添加 `data-testid`
-- [ ] 服务层（`services/api.ts`）测试未重复覆盖（已在 Phase 5b 完成）
+- [ ] 接口层测试未重复覆盖（已在 Phase 5b 完成）

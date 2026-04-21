@@ -34,35 +34,37 @@ Risk: high / medium / low
 ### CRITICAL — 安全（必须阻塞合并）
 
 - [ ] 无硬编码 API Key / 密码 / Token
-- [ ] 无 XSS（用户输入未经净化直接渲染）
+- [ ] 无 XSS（用户输入未经净化直接渲染为 HTML）
 - [ ] 权限受保护路由有前后端双重校验
-- [ ] 2FA 流程完整，无绕过入口
+- [ ] 鉴权敏感流程完整，无绕过入口（如存在二次验证等安全机制）
 - [ ] 无敏感信息写入日志
 
 ### HIGH — 代码质量（建议修复后合并）
 
-- [ ] 无无理由的 `any` / `as` 强制转换
-- [ ] `useEffect` / `useMemo` / `useCallback` 依赖数组完整
+- [ ] 无无理由的 `any` / 类型断言强制转换
+- [ ] 响应式依赖 / 副作用依赖完整（根据项目框架规范检查，如 React deps 数组、Vue watch 依赖等）
 - [ ] 列表使用稳定唯一 key（非 index）
 - [ ] 无未处理的 Promise 拒绝
 - [ ] 无空 `catch` 块（至少记录错误信息）
 - [ ] 函数 ≤ 50 行，文件 ≤ 800 行
-- [ ] 状态机完整（view / edit / saving / error）
-- [ ] 有 `ErrorBoundary` 包裹数据请求子树
+- [ ] 状态机完整（覆盖 Phase 1 中枚举的所有状态；若 Phase 1 标注「无状态变化」则此项 N/A）
+- [ ] 数据请求子树有错误边界或等效容错机制包裹
 
-### HIGH — React 模式
+### HIGH — 框架特有模式（根据 Phase 2 确认的框架检查）
 
-- [ ] 无渲染阶段调用 `setState`（导致无限循环）
-- [ ] 无陈旧闭包（事件处理器捕获了过期状态）
-- [ ] 重型计算已 `useMemo`，重型组件已 `React.memo`
+> 此节内容根据项目实际框架动态应用，不适用的条目标注 N/A。
+
+- [ ] 无渲染阶段触发状态更新（导致无限循环）
+- [ ] 无陈旧闭包 / 过期引用（事件处理器捕获了过期状态或响应式数据）
+- [ ] 高开销计算已缓存，避免每次渲染重复执行
 - [ ] 数据请求有 loading / error / empty 三态 UI
-- [ ] 无 `array.forEach(async fn)`（不会 await，用 `for...of` 或 `Promise.all`）
+- [ ] 无异步数组遍历陷阱（确保 async 操作被正确 await）
 
 ### MEDIUM — 性能
 
 - [ ] 长列表（> 100 条）有虚拟滚动
 - [ ] 无不必要的整库导入（使用具名导入）
-- [ ] 无重复 `useEffect` 拉取（合并或用 React Query）
+- [ ] 无重复数据请求（合并或使用项目已有的请求缓存方案）
 - [ ] 无渲染中创建对象/数组作为 Props（导致不必要重渲染）
 
 ### MEDIUM — 无障碍（a11y）
@@ -89,73 +91,72 @@ Risk: high / medium / low
 
 ### Pattern 1：沙箱 / 生产路径不一致（最高频）
 
-```typescript
-// ✗ AI 常见错误：只修了生产路径，沙箱路径遗漏新字段
+```
+// ✗ AI 常见错误：只修了生产路径，沙箱/测试路径遗漏新字段
 if (isSandboxMode()) {
-  return { data: { id, email } }            // ← 新字段缺失
+  return { data: { <existingFields> } }           // ← 新字段缺失
 }
-return { data: { id, email, rateConfig } }  // 生产路径有
+return { data: { <existingFields>, <newField> } }  // 生产路径有
 
 // ✓ 两条路径必须返回相同结构
 if (isSandboxMode()) {
-  return { data: { id, email, rateConfig: null } }
+  return { data: { <existingFields>, <newField>: null } }
 }
-return { data: { id, email, rateConfig } }
+return { data: { <existingFields>, <newField> } }
 ```
 
-**捕获方式**：在沙箱模式下断言 `REQUIRED_FIELDS` 全部存在。
+**捕获方式**：在沙箱/测试模式下断言所有必需字段全部存在。
 
-### Pattern 2：SELECT / 查询字段遗漏
+### Pattern 2：查询字段遗漏
 
-```typescript
-// ✗ 新增字段到响应，但忘记加到 select
-const { data } = await supabase
-  .from('rates')
-  .select('id, brand')   // rateConfig 没加
-  .single()
+```
+// ✗ 新增字段到响应类型，但忘记加到查询 select
+const result = await <queryBuilder>
+  .select('<existingFields>')  // <newField> 没加
+  .where(...)
 
-// ✓ 显式包含新字段，或使用 SELECT *
-.select('id, brand, rateConfig')
+// ✓ 显式包含新字段
+.select('<existingFields>, <newField>')
 ```
 
-**捕获方式**：断言返回字段不为 `undefined`。
+**捕获方式**：断言返回字段不为 `undefined` / `null`。
 
 ### Pattern 3：错误状态泄漏（旧数据残留）
 
-```typescript
+```
 // ✗ 报错后忘记清空上一次的数据，旧数据继续显示
 catch (err) {
   setError('加载失败')
-  // records 仍然显示上一个 Tab 的数据！
+  // <list> 仍然显示上一次的数据！
 }
 
 // ✓ 错误时清空关联状态
 catch (err) {
-  setRecords([])
+  set<List>([])
   setError('加载失败')
 }
 ```
 
-**捕获方式**：测试「切换 Tab 后接口报错」场景，断言列表清空。
+**捕获方式**：测试「切换上下文后接口报错」场景，断言列表清空。
 
 ### Pattern 4：乐观更新无回滚
 
-```typescript
+```
 // ✗ API 失败后 UI 已更新，前后端数据不一致
-const handleSave = async (config: RateConfig) => {
-  setConfig(config)                    // 乐观更新
-  await apiSaveRateConfig(config)      // 失败了，UI 不会回滚
+const handleSave = async (payload) => {
+  set<Data>(payload)               // 乐观更新
+  await api<Save>(payload)         // 失败了，UI 不会回滚
 }
 
 // ✓ 失败时回滚到之前的状态
-const handleSave = async (config: RateConfig) => {
-  const prevConfig = currentConfig
-  setConfig(config)
+const handleSave = async (payload) => {
+  const prev<Data> = current<Data>
+  set<Data>(payload)
   try {
-    await apiSaveRateConfig(config)
+    await api<Save>(payload)
   } catch {
-    setConfig(prevConfig)              // 回滚
-    message.error('保存失败，请重试')
+    set<Data>(prev<Data>)           // 回滚
+    <showErrorMessage>
   }
 }
 ```
@@ -166,9 +167,8 @@ const handleSave = async (config: RateConfig) => {
 
 每次因线上 bug 补写的回归测试，名称必须标注来源：
 
-```typescript
-it('rateConfig 字段不为 undefined (BUG-R1 回归)', async () => { /* ... */ })
-it('切换品牌后历史记录不残留旧数据 (BUG-R2 回归)', async () => { /* ... */ })
+```
+it('<场景描述> (BUG-R<编号> 回归)', async () => { /* ... */ })
 ```
 
 ---

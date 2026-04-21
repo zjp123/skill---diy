@@ -9,37 +9,45 @@
 
 ### 技术栈
 
-| 层次 | 检查项 |
+> 不要预设技术栈——从 `package.json`（含 `dependencies` / `devDependencies`）和配置文件中读取实际依赖，逐维度确认。
+
+**侦察维度（每项均需在 `package.json` 中找到对应依赖作为证据）：**
+
+| 维度 | 如何确认 |
 |---|---|
-| 框架 | React / Vue / Next.js / Nuxt |
-| UI 库 | Antd / MUI / Radix / shadcn |
-| 状态管理 | Zustand / Redux / Context / Jotai |
-| 请求层 | React Query / SWR / 自封装 hooks |
-| 表单 | React Hook Form / Ant Form |
-| 路由 | React Router / Next.js App Router |
-| 测试框架 | Jest / Vitest / Playwright |
-| 样式方案 | CSS Modules / Tailwind / styled-components |
-| 埋点 / 监控 | Mixpanel / Segment / 自定义 `track()` / Sentry / Datadog |
+| 前端框架 | 查 `package.json` 主框架依赖（如 react、vue、svelte 等） |
+| UI 组件库 | 查 UI 相关依赖，读其文档确认组件 API |
+| 状态管理 | 查状态相关依赖，搜索项目中的 store / atom / slice 目录 |
+| 请求层 | 查数据请求依赖，搜索项目中实际的 API 调用封装位置 |
+| 表单方案 | 查表单相关依赖，确认实际使用方式 |
+| 路由方案 | 查路由依赖或框架内置路由，确认路由文件组织方式 |
+| 测试框架 | 查测试相关依赖，确认测试文件命名规范和存放目录 |
+| 样式方案 | 查样式相关依赖，确认 Token / 变量注入方式 |
+| 埋点 / 监控 | 查分析/监控依赖，搜索项目中实际调用入口，确认事件命名规范 |
 
 ### 可复用组件清单
 
-优先检查以下类型是否已有现成实现：
+> 不要预设答案——根据当前项目的实际代码动态发现可复用资源。
 
-- **布局**：Page / Card / Modal / Drawer / Tabs
-- **表单**：Input / Select / DatePicker / InputNumber / Form.Item
-- **表格**：BusinessTable / DataTable / ProTable
-- **权限**：Auth / PermissionGuard / withPermission HOC
-- **安全**：2FA 组件（BindTwoFaDialog / TwoFAFrom）
-- **国际化**：i18n key 注入方式、翻译文件位置
-- **埋点**：`track()` / `analytics.track()` 的调用入口文件路径、事件命名规范（snake_case / camelCase / 枚举）
+**侦察步骤（按顺序执行）：**
+
+1. **定位组件目录**：查找 `src/components`、`packages/*/src`、`src/shared`、`src/ui` 等惯用路径，列出顶层目录结构。
+2. **按功能类型归类**：针对 PRD / Figma 中出现的 UI 需求，在已有组件中逐一搜索对应实现，分类汇总：
+   - 布局类（页面骨架、卡片、弹窗、抽屉、标签页等）
+   - 表单类（输入框、选择器、日期、数字等）
+   - 数据展示类（表格、列表、图表等）
+   - 权限 / 安全类（鉴权组件、守卫 HOC 等）
+   - 国际化：找到 i18n 初始化入口与翻译文件存放位置
+   - 埋点：找到 `track()` / 分析事件的调用入口文件，确认事件命名规范
+3. **评估复用可行性**：对每个候选组件，阅读实际源码，标注「直接复用」/「改造复用（说明改造点）」/「需自定义开发」。
 
 ### 代码证据要求
 
-> 每个关键复用点**必须**有文件路径 + 行号支撑
+> 每个关键复用点**必须**有文件路径 + 行号支撑，格式示例：
 
 ```
-AssetTabs.tsx → src/pages/dapManagement/components/AssetTabs.tsx#18-65
-BusinessTable → packages/admin-ui/src/BusinessTable/index.tsx#1
+<ComponentName> → <文件路径>#<起始行>-<结束行>
+<utilFn>        → <文件路径>#<行号>
 ```
 
 ---

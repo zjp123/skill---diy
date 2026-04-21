@@ -5,27 +5,32 @@
 
 ---
 
-## 标准目录结构
+## 前置依赖
 
-```text
-src/pages/<feature>/
-├── index.tsx               # 页面容器（状态编排，不含业务逻辑）
-├── style.module.less        # CSS Modules 样式
-├── constants.ts             # 常量与枚举
-├── types.ts                 # TypeScript 类型定义
-├── hooks/
-│   ├── use<Feature>.ts      # 主业务 Hook
-│   └── use<Feature>.test.ts # Hook 单元测试
-├── components/
-│   ├── <WidgetA>.tsx
-│   ├── <WidgetA>.test.tsx   # 组件单元测试（并置）
-│   └── <WidgetB>.tsx
-└── services/
-    ├── api.ts               # 接口层（只写签名，不实现；有接口文档时由 Phase 5b 填充实现）
-    └── api-paths.ts         # API 路径常量（Phase 5b 创建或确认）
+> 本 Phase 所有决策**必须来自前序 Phase 的产物**，不得凭空假设。
 
-e2e/
-└── <feature>.spec.ts        # E2E 测试
+| 依赖来源 | 使用内容 |
+|---|---|
+| Phase 0（PRD 分析） | REQ 编号、功能边界 |
+| Phase 1（Figma 读取） | 状态机结论、UI 区域划分 |
+| Phase 2（代码库侦察） | 框架、目录约定、文件命名规范、状态管理方案、样式方案 |
+| Phase 3（组件映射） | 组件选型结论、Props 签名草稿、数据域归属 |
+
+---
+
+## 目录结构决策
+
+> 不要预设目录结构——根据 Phase 2 侦察到的项目目录约定生成。
+
+**决策步骤：**
+
+1. **定位既有页面目录**：在 Phase 2 确认的路由 / 页面目录中，找一个结构相似的已有页面作为参照。
+2. **对照参照页面**：列出它的目录层级和文件组织方式，作为本次新页面的起点。
+3. **按需增减**：根据 Phase 3 组件映射结论，决定需要新建哪些目录和文件；不需要的不新建。
+4. **输出目录树**：用 `tree` 格式列出本次需要创建 / 修改的文件清单，每项标注对应 REQ。
+
+```
+<参照既有页面目录结构，在此输出本次目录树>
 ```
 
 ---
@@ -34,87 +39,93 @@ e2e/
 
 每个文件必须包含：
 1. 文件职责说明（单行注释）
-2. 完整的 TypeScript 类型 / Props / 方法签名
-3. `throw new Error('todo')` 占位（不实现业务逻辑）
+2. 完整的类型 / Props / 方法签名（使用项目实际类型系统）
+3. `throw new Error('todo')` 或框架等效占位（不实现业务逻辑）
 4. 关联的 REQ 编号（注释形式）
 
-```typescript
-// 职责：汇率配置页主 Hook，管理品牌切换与保存流程
-// 关联：REQ-003, REQ-004, REQ-005
-export function useCommissionExchangeRate() {
-  // TODO: 实现
+**示例格式（语言/框架根据项目实际调整）：**
+
+```
+// 职责：<描述该文件的单一职责>
+// 关联：<REQ-XXX, REQ-YYY>
+
+export function <functionName>(<params>): <ReturnType> {
   throw new Error('todo')
 }
 ```
 
 ---
 
-## 命名规范（骨架阶段确定，后续不随意变更）
+## 命名规范
+
+> 以下为通用原则；若 Phase 2 侦察到项目已有命名约定，**以项目约定为准**，本节原则作为兜底。
 
 ### 函数：动宾结构，语义自解释
 
-```typescript
-// ✓ 好的命名
-async function fetchRateConfig(brand: BrandCode): Promise<RateConfig>
-function calculateTotalProfit(rows: ProfitRow[]): number
-function isValidRateInput(value: number | null): boolean
+```
+// ✓ 好的命名（语义明确，见名知意）
+fetch<Resource>(<params>): Promise<<Type>>
+calculate<Metric>(<params>): <Type>
+is<Condition>(<params>): boolean
 
-// ✗ 错误的命名
-async function rateConfig(id: any)
-function calc(a, b)
+// ✗ 错误的命名（语义模糊，含糊缩写）
+getData(id: any)
+calc(a, b)
 ```
 
 ### 变量：充分描述，禁止缩写和单字母（循环变量除外）
 
-```typescript
+```
 // ✓
-const activeBrandCode = 'VG'
-const isEditingRateForm = false
-const totalProfitUSD = 12345.67
+const active<EntityName> = ...
+const is<State> = false
+const total<Metric><Unit> = ...
 
 // ✗
-const x = 'VG'
+const x = ...
 const flag = false
-const tmp = 12345.67
+const tmp = ...
 ```
 
 ### 其他命名规则
 - **组件**：PascalCase，文件名与导出名一致
-- **Hooks**：`use` 前缀 + 功能描述（`useCommissionExchangeRate`）
-- **类型**：PascalCase，`interface` 用于结构体，`type` 用于联合 / 工具类型
+- **逻辑单元**（hook / composable / service）：遵循项目已有命名前缀约定
+- **类型**：PascalCase；结构体优先用接口声明，联合 / 工具类型用类型别名
 - **常量**：UPPER_SNAKE_CASE（`MAX_RETRIES`、`DEBOUNCE_DELAY_MS`）
 
 ---
 
 ## 文件 → REQ 映射表
 
-| 文件 | 覆盖 REQ | 审查重点 |
+> 根据 Phase 3 组件映射结论动态填写，不要预填；每行对应一个实际需要创建或修改的文件。
+
+| 文件路径 | 覆盖 REQ | 审查重点 |
 |---|---|---|
-| `index.tsx` | REQ-004, REQ-005 | 状态流转、2FA 串联 |
-| `hooks/useFeature.ts` | REQ-003, REQ-004 | 请求编排、状态策略 |
-| `components/SettingCard.tsx` | REQ-003, REQ-004 | 三字段校验与编辑态 |
-| `services/api.ts` | REQ-003, REQ-005 | 接口签名一致性 |
+| （根据本次需求动态填写） | （来自 Phase 0） | （来自 Phase 1 / Phase 3） |
 
 ---
 
 ## 编码顺序建议
 
-1. `types.ts` + `constants.ts`（类型优先，确保全局对齐）
-2. `services/api.ts`（**此阶段只写函数签名 + 类型，不实现业务逻辑**）
+> 以下顺序适用于大多数场景；若项目有既定开发顺序，以项目规范为准。
+
+1. **类型与常量**（全局对齐，后续文件依赖）
+2. **接口层签名**（只写函数签名 + 类型，不实现）
    - 若已提供后端接口文档 → 暂停，进入 **Phase 5b** 完成实现后再继续
-   - 若无接口文档 → 保留 `throw new Error('todo')` 占位，联调时补齐
-3. `hooks/use<Feature>.ts`（数据流先通）
-4. 叶子组件（纯 UI，无内部状态）
-5. 容器组件 + 业务逻辑接入
-6. 权限 & 国际化收尾
+   - 若无接口文档 → 保留占位，联调时补齐
+3. **逻辑单元**（hook / composable / store，数据流先通）
+4. **叶子组件**（纯 UI，无内部状态）
+5. **容器 / 页面组件**（业务逻辑接入）
+6. **权限 & 国际化收尾**
 
 ---
 
 ## 输出检查
 
+- [ ] 目录结构已参照项目既有页面约定，非预设模板
 - [ ] 每个变更文件可反查到至少一个 `REQ-*`
-- [ ] 类型定义无 `any`
+- [ ] 类型定义无 `any` / `unknown` 兜底
 - [ ] 函数命名均为动宾结构
-- [ ] 测试文件与被测文件并置
+- [ ] 测试文件与被测文件的位置符合项目已有规范
 - [ ] 骨架可直接开工，不依赖口头补充
-- [ ] `services/api.ts` 的处理已明确：有接口文档则转入 Phase 5b；无则保留签名占位
+- [ ] `services / api` 层的处理已明确：有接口文档则转入 Phase 5b；无则保留签名占位
